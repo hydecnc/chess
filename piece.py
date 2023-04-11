@@ -110,7 +110,13 @@ class ChessPiece(QGraphicsPixmapItem):
 
     def validateMove(self):
         # legal moves
+        self.take = True
         self.scene().checkLegal.emit(self)
+
+        if not self.take:
+            self.rollback()
+            return False
+
         match self.type:
             # TODO: implement pawn's legal moves
             case "pawn":
@@ -127,7 +133,6 @@ class ChessPiece(QGraphicsPixmapItem):
                 
                 if not self.validBishopMove():
                     self.rollback()
-                    print("SD")
                     return False
                 
             case "rook":
@@ -143,7 +148,7 @@ class ChessPiece(QGraphicsPixmapItem):
                 if (self.new_file != self.file and self.new_rank != self.rank) and (abs(self.file_gap) != abs(self.rank_gap)):
                     self.rollback()
                     return False
-                print("QUEEN")
+
                 if not self.validRookMove() or not self.validBishopMove():
                     self.rollback()
                     return False
@@ -176,7 +181,6 @@ class ChessPiece(QGraphicsPixmapItem):
                 return False
         if self.file_gap < 0 and self.rank_gap > 0:
             if abs(self.file_gap) > self.UR:
-                print("HI")
                 return False
         if self.file_gap > 0 and self.rank_gap < 0:
             if abs(self.file_gap) > self.DL:

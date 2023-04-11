@@ -91,16 +91,20 @@ class Chess(QGraphicsView):
     
     
     def handlePieceMoved(self, piece):
-        if self.turn == piece.color:
-            if isinstance(self.board[piece.file][piece.rank], ChessPiece):
-                self.scene.removeItem(self.board[piece.file][piece.rank])
-                self.board[piece.file][piece.rank] = 0
-            self.change_turn(piece.color)
-            self.board[piece.prev_file][piece.prev_rank], self.board[piece.file][piece.rank] = self.board[piece.file][piece.rank], self.board[piece.prev_file][piece.prev_rank]
+        if isinstance(self.board[piece.file][piece.rank], ChessPiece):
+            self.scene.removeItem(self.board[piece.file][piece.rank])
+            self.board[piece.file][piece.rank] = 0
+        self.change_turn(piece.color)
+        self.board[piece.prev_file][piece.prev_rank], self.board[piece.file][piece.rank] = self.board[piece.file][piece.rank], self.board[piece.prev_file][piece.prev_rank]
         # self.print_board()
     
-    # TODO: check number of square until a piece reaches end of the board/another piece
     def legalSquares(self, piece):
+        if isinstance(self.board[piece.new_file][piece.new_rank], ChessPiece):
+            if self.board[piece.new_file][piece.new_rank].color != piece.color:
+                piece.take = True
+            else:
+                piece.take = False
+        
         # Rook
         if piece.up != 0:
             for i in range(piece.up):
