@@ -21,6 +21,7 @@ class Chess(QGraphicsView):
             'white': QColor(238, 238, 210),
         }
         self.turn = "white"
+        self.moves = []
         
         # Define the width and height
         self.WIDTH = self.contentsRect().width()
@@ -45,9 +46,8 @@ class Chess(QGraphicsView):
             pos['y'] += self.HEIGHT/8
         
         # Place the pieces
-        self.piece_fen = "rnbqkbnr/1ppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
+        self.piece_fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
         fen = self.piece_fen.split('/')
-        fen.reverse()
         print(fen)
 
         pos = {'x': 0, 'y':0}
@@ -91,12 +91,17 @@ class Chess(QGraphicsView):
     
     
     def handlePieceMoved(self, piece):
+        move = self.board[piece.prev_file][piece.prev_rank].symbol if self.board[piece.prev_file][piece.prev_rank].type != "pawn" else ""
+
         if isinstance(self.board[piece.file][piece.rank], ChessPiece):
             self.scene.removeItem(self.board[piece.file][piece.rank])
             self.board[piece.file][piece.rank] = 0
+            move += 'x' if self.board[piece.prev_file][piece.prev_rank].type != "pawn" else f"{self.board[piece.prev_file][piece.prev_rank].coord()[0]}x"
+        move += ''.join(piece.coord())
+            
         self.change_turn(piece.color)
         self.board[piece.prev_file][piece.prev_rank], self.board[piece.file][piece.rank] = self.board[piece.file][piece.rank], self.board[piece.prev_file][piece.prev_rank]
-        # self.print_board()
+        self.moves.append(move)
     
     def legalSquares(self, piece):
         if isinstance(self.board[piece.new_file][piece.new_rank], ChessPiece):
@@ -157,3 +162,19 @@ class Chess(QGraphicsView):
                 else:
                     print(self.board[file][rank].type, end=" ")
             print()
+
+    def generate_fen(self):
+        fen = ""
+        for file in range(7, -1, -1):
+            count = 0
+            for rank in range(8):
+                if isinstance(self.board[file][rank], ChessPiece):
+                    fen += str(count) if count > 0 else ''
+                    count = 0
+                    fen += self.board[file][rank].symbol
+                else:
+                    count += 1
+
+            fen += str(count) if count > 0 else ''
+            fen += '/'
+        return fen[:len(fen)-1]

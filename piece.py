@@ -8,8 +8,9 @@ IMAGE_SIZE = 334
 class ChessPiece(QGraphicsPixmapItem):
     def __init__(self, type, x, y, size) -> None:
         self.size = size
-        self.color = "white" if type.islower() else "black"
+        self.color = "white" if type.isupper() else "black"
         self.type = ""
+        self.symbol = type
         match type.lower():
             case 'p':
                 self.type = "pawn"
@@ -41,6 +42,8 @@ class ChessPiece(QGraphicsPixmapItem):
         self.new_xpos = self.x()
         self.new_ypos = self.y()
     
+    def coord(self):
+        return (chr(97 + self.rank), str(8 - self.file))
 
     # TODO: diplay attacking squares with red color when the piece is released
     def display_attaking_squares(self):
