@@ -4,3 +4,4 @@ from PyQt6.QtCore import pyqtSignal
 
 class ChessBoard(QGraphicsScene):
     pieceMoved = pyqtSignal(object)
+    checkLegal = pyqtSignal(object)

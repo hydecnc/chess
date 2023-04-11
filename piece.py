@@ -13,6 +13,7 @@ class ChessPiece(QGraphicsPixmapItem):
         match type.lower():
             case 'p':
                 self.type = "pawn"
+                self.moved = False
             case 'n':
                 self.type = "knight"
             case 'b':
@@ -66,26 +67,129 @@ class ChessPiece(QGraphicsPixmapItem):
         self.setPos(QPointF(self.new_xpos, self.new_ypos))
 
     def mouseReleaseEvent(self, event):
-        # print(self.prev_rank*self.size/8, self.prev_file*self.size/8)
-
         self.new_rank = round(self.new_xpos/(self.size/8))
         self.new_file = round(self.new_ypos/(self.size/8))
-        # print(f"xpos: {xpos}, ypos: {ypos}")
+
+        # Move the piece back when it's out of the board
+        if self.new_rank < 0 or self.new_rank > 7 or self.new_file < 0 or self.new_file > 7:
+            self.rollback()
+            return
         
-        # print(f"og: ({self.xpos}, {self.ypos}) vs. new: {(new_xpos, new_ypos)}")
+        # Calculate number of square until the end of the board
+        self.left = self.rank
+        self.right = 7 - self.rank
+        self.up = self.file
+        self.down = 7 - self.file
+
+        self.UL = min(self.up, self.left)
+        self.UR = min(self.up, self.right)
+        self.DL = min(self.down, self.left)
+        self.DR = min(self.down, self.right)
+
+
+        # Check if piece moved
+        self.rank_gap = self.new_rank - self.rank
+        self.file_gap = self.new_file - self.file
+
         if self.new_rank != self.rank or self.new_file != self.file:
+            self.valid = self.validateMove()
+            if not self.valid:
+                return
+
+
             self.prev_rank = self.rank
             self.prev_file = self.file
             self.prev_pos.append((self.prev_rank, self.prev_file))
             self.rank = self.new_rank
-            self.file = self.new_file    
-            self.rollback()
-            self.scene().pieceMoved.emit(self)
-            # print(f"{self.color} moved to {(self.rank, self.file)} from {(self.prev_rank, self.prev_file)}")
+            self.file = self.new_file
 
-        self.setPos(QPointF(self.rank*self.size/8, self.file*self.size/8))
-        # self.setPos(QPointF(self.prev_rank*self.size/8, self.prev_file*self.size/8))
+            self.scene().pieceMoved.emit(self)
+            self.setPos(QPointF(self.rank*self.size/8, self.file*self.size/8))
+
+        self.rollback()
+
+    def validateMove(self):
+        # legal moves
+        self.scene().checkLegal.emit(self)
+        match self.type:
+            # TODO: implement pawn's legal moves
+            case "pawn":
+                pass
+            case "knight":
+                if (abs(self.file_gap) != 1 or abs(self.rank_gap) != 2) and (abs(self.rank_gap) != 1 or abs(self.file_gap) != 2):
+                    self.rollback()
+                    return False
+            # TODO: not let pieces jump above others
+            case "bishop":
+                if abs(self.file_gap) != abs(self.rank_gap):
+                    self.rollback()
+                    return False
+                
+                if not self.validBishopMove():
+                    self.rollback()
+                    print("SD")
+                    return False
+                
+            case "rook":
+                if self.new_file != self.file and self.new_rank != self.rank:
+                    self.rollback()
+                    return False
+                
+                if not self.validRookMove():
+                    self.rollback()
+                    return False
+                
+            case "queen":
+                if (self.new_file != self.file and self.new_rank != self.rank) and (abs(self.file_gap) != abs(self.rank_gap)):
+                    self.rollback()
+                    return False
+                print("QUEEN")
+                if not self.validRookMove() or not self.validBishopMove():
+                    self.rollback()
+                    return False
+        
+            case "king":
+                if abs(self.file_gap) > 1 or abs(self.rank_gap) > 1:
+                    self.rollback()
+                    return False
+        return True
     
+    def validRookMove(self):
+        # print(f"rank gap: {self.rank_gap}, file gap: {self.file_gap}")
+        if self.file_gap < 0:
+            if abs(self.file_gap) > self.up:
+                return False
+        if self.file_gap > 0:
+            if abs(self.file_gap) > self.down:
+                return False
+        if self.rank_gap < 0:
+            if abs(self.rank_gap) > self.left:
+                return False
+        if self.rank_gap > 0:
+            if abs(self.rank_gap) > self.right:
+                return False
+        return True
+    
+    def validBishopMove(self):
+        if self.file_gap < 0 and self.rank_gap < 0:
+            if abs(self.file_gap) > self.UL:
+                return False
+        if self.file_gap < 0 and self.rank_gap > 0:
+            if abs(self.file_gap) > self.UR:
+                print("HI")
+                return False
+        if self.file_gap > 0 and self.rank_gap < 0:
+            if abs(self.file_gap) > self.DL:
+                return False
+        if self.file_gap > 0 and self.rank_gap > 0:
+            if abs(self.file_gap) > self.DR:
+                return False
+        return True
+
     def rollback(self):
-        print(self.prev_file, self.prev_rank)
-        # print("rollback")
+        """
+        Bring the piece back to its original position
+        """
+        self.prev_rank = self.rank
+        self.prev_file = self.file
+        self.setPos(QPointF(self.prev_rank*self.size/8, self.prev_file*self.size/8))
